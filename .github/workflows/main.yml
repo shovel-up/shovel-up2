@@ -1,0 +1,34 @@
+name: Deploy BEFORE to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare game
+        shell: bash
+        run: |
+          mkdir -p site
+          LATEST=$(find . -maxdepth 1 -type f -name 'BEFORE_v*.html' -printf '%f\n' | sort -V | tail -1)
+          test -n "$LATEST"
+          echo "Deploying $LATEST"
+          cp "$LATEST" site/index.html
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site --project-name=shovel-up2
